@@ -1,4 +1,4 @@
-from packet_base_estimation_algorithm import PackBaseEstimationAlgorithm
+from utilities.packet_base_estimation_algorithm import PackBaseEstimationAlgorithm
 from utilities.database import Database
 
 if __name__ == "__main__":
