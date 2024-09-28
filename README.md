@@ -12,4 +12,4 @@ A packet base crowd estimation algorithm implemented using python machine learni
 5. Run the `main.py` script using `python main.py`
 
 ## Is there a bug?
-Please don't hesistate to contact me!
+Please don't hesistate to contact me or submit a ticket!
