@@ -50,9 +50,7 @@ class Database:
 
     def fetch_data(self):
         query = """
-            SELECT device_id, device_addr, timestamp, is_randomized, device_power, ssid, frame_type, zone 
-            FROM devices 
-            WHERE processed = False
+        SELECT devices.id AS id, device_addr, date_detected, is_randomized, device_power, frame_type, devices.zone AS zone_id, zones.name AS zone FROM devices JOIN zones ON devices.zone = zones.id WHERE devices.processed = False
         """
         with self.connect() as connection:
             try:
@@ -61,39 +59,57 @@ class Database:
                 logging.error(f"Error fetching data: {e}", exc_info=True)
                 raise
 
-    def insert_estimated_people(self, data):
+    def insert_estimated_people(self, data, silhouette_score=0.0):
         query = text("""
-            INSERT INTO estimated_crowd (estimated_crowd, estimated_crowd_zone, first_seen, last_seen, scanned_minutes)
-            VALUES (:estimated_crowd, :estimated_crowd_zone, :first_seen, :last_seen, :scanned_minutes)
+            INSERT INTO predictions (zone_id, score, estimated_count, first_seen, last_seen, scanned_minutes, is_displayed)
+            VALUES (:zone_id, :score, :estimated_count, :first_seen, :last_seen, :scanned_minutes, :is_displayed)
         """)
 
         with self.connect() as connection:
             try:
                 for i, row in data.iterrows():
                     connection.execute(query, {
-                        'estimated_crowd': row['device_count'],
-                        'estimated_crowd_zone': row['zone'],
+                        'zone_id': row['zone_id'],
+                        'score': silhouette_score,
+                        'estimated_count': row['device_count'],
                         'first_seen': row['time_start'],
                         'last_seen': row['time_ended'],
-                        'scanned_minutes': row['scanned_minutes']
+                        'scanned_minutes': row['scanned_minutes'],
+                        'is_displayed': False,
                     })
-                    logging.info(f"Row {i} data inserted into 'estimated_crowd' table.")
+                    logging.info(f"Row {i+1} data inserted into 'predictions' table.")
+
+                connection.commit()
+
             except Exception as e:
+                connection.rollback()
                 logging.error(f"Error inserting data: {e}", exc_info=True)
                 raise
 
     def update_device_info(self, data):
-        query = text(
-            "UPDATE devices SET processed = True WHERE device_id IN :device_ids"
-        )
+        device_ids = [int(id_) for id_ in data['id'].tolist()]
+        
+        if not device_ids:
+            return
 
+        placeholders = ', '.join([':id' + str(i) for i in range(len(device_ids))])
+        
+        query = text(f"""
+            UPDATE devices 
+            SET processed = True
+            WHERE id IN ({placeholders})
+        """)
+        
         with self.connect() as connection:
             try:
-                device_ids = data['device_id'].tolist()
-                connection.execute(query, {'device_ids': tuple(device_ids)})
-                logging.info("Device data updated successfully.")
+                params = {f'id{i}': device_ids[i] for i in range(len(device_ids))}
+                connection.execute(query, params)
+                connection.commit()
+                logging.info(f"Successfully updated {len(device_ids)} devices")
+                
             except Exception as e:
-                logging.error(f"Error updating device info: {e}", exc_info=True)
+                logging.error(f"Error updating device info", exc_info=True)
+                connection.rollback()
                 raise
 
     def dispose(self):
