@@ -50,7 +50,7 @@ class DataProcessingService:
                 self.logger.error(f"Critical error in processing loop: {e}", exc_info=True)
             
             for _ in range(60):
-                await asyncio.sleep(5)
+                await asyncio.sleep(1)
                 await self.ws_server.send_to_clients("ping")
                 self.logger.debug("Sent ping to keep WebSocket alive")
 

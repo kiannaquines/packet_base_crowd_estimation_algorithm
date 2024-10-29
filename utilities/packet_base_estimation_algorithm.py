@@ -82,8 +82,10 @@ class PackBaseEstimationAlgorithm:
             raise
 
     def to_sent_data(self, aggregated_data):
+        import random
         for _, row in aggregated_data.iterrows():
             result = {
+                'id': random.randint(1, 10000),
                 'zone': row['zone'],
                 'estimated_count': row['device_count'],
                 'first_seen': row['time_start'].strftime('%Y-%m-%d %H:%M:%S'),
