@@ -61,7 +61,6 @@ class PackBaseEstimationAlgorithm:
             return None
 
     def aggregate_cluster_counts(self, data):
-        data.to_csv('cluster_check.csv',index=False)
         cluster_aggregation = data.groupby(['zone','zone_id']).agg(
             device_count=('cluster', 'nunique'),
             time_start=('date_detected', 'min'),
